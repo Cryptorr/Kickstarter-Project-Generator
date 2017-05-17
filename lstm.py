@@ -16,7 +16,6 @@ projects["blurb"] = projects["blurb"].astype(str)
 for blurb in projects["blurb"]:
     text += blurb
 text = text.lower()
-print(text)
 
 chars = sorted(list(set(text)))
 print('total chars:', len(chars))
@@ -40,52 +39,23 @@ for i, sentence in enumerate(sentences):
     y[i, char_indices[next_chars[i]]] = 1
 
 
-# build the model: a single LSTM
+# build the model: a triple LSTM
 model = Sequential()
-model.add(LSTM(128, input_shape=(maxlen, len(chars))))
+model.add(LSTM(512, input_shape=(maxlen, len(chars)), return_sequences=True))
+model.add(LSTM(512, return_sequences=True))
+model.add(LSTM(512))
 model.add(Dense(len(chars)))
 model.add(Activation('softmax'))
 
-optimizer = RMSprop(lr=0.01)
-model.compile(loss='categorical_crossentropy', optimizer=optimizer)
+model.load_weights("weights-1.581.hdf5")
+model.compile(loss='categorical_crossentropy', optimizer='adam')
 
-for iteration in range(1, 10):
-    # define the checkpoint
-    filepath = "weights-improvement-{epoch:02d}-{loss:.4f}-bigger.hdf5"
-    checkpoint = ModelCheckpoint(filepath, monitor='loss', verbose=1, save_best_only=True, mode='min')
-    callbacks_list = [checkpoint]
+filepath = "weights-{loss:.3f}.hdf5"
+checkpoint = ModelCheckpoint(filepath, monitor='loss', verbose=1, save_best_only=True, mode='min')
+callbacks_list = [checkpoint]
 
-    print()
-    print('Iteration', iteration)
-    model.fit(X, y,
-              batch_size=128,
-              epochs=1,
-              callbacks = callbacks_list)
-
-    start_index = random.randint(0, len(text) - maxlen - 1)
-
-    generated = ''
-    sentence = text[start_index: start_index + maxlen]
-    generated += sentence
-    print('Seed: "' + sentence + '"')
-    sys.stdout.write(generated)
-
-    for i in range(200):
-        x = np.zeros((1, maxlen, len(chars)))
-        for t, char in enumerate(sentence):
-            x[0, t, char_indices[char]] = 1.
-
-        preds = model.predict(x, verbose=0)[0]
-        preds = np.asarray(preds).astype('float64')
-        preds = np.log(preds)
-        exp_preds = np.exp(preds)
-        preds = exp_preds / np.sum(exp_preds)
-        probas = np.random.multinomial(1, preds, 1)
-        next_index = np.argmax(probas)
-        next_char = indices_char[next_index]
-
-        generated += next_char
-        sentence = sentence[1:] + next_char
-
-        sys.stdout.write(next_char)
-        sys.stdout.flush()
+model.fit(X, y,
+          validation_split=0.33,
+          epochs=200,
+          batch_size=128,
+          callbacks = callbacks_list)
