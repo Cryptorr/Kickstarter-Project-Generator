@@ -47,7 +47,7 @@ model.add(LSTM(512))
 model.add(Dense(len(chars)))
 model.add(Activation('softmax'))
 
-model.load_weights("weights-1.581.hdf5")
+model.load_weights("weights-0.377.hdf5")
 model.compile(loss='categorical_crossentropy', optimizer='adam')
 #generate output
 start_index = random.randint(0, len(text) - maxlen - 1)
