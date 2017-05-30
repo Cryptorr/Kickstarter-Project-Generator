@@ -2,6 +2,7 @@ from __future__ import print_function
 from keras.models import Sequential
 from keras.layers import Dense, Activation
 from keras.layers import LSTM
+from keras.layers import Dropout
 from keras.optimizers import RMSprop
 from keras.callbacks import ModelCheckpoint
 from keras.utils.data_utils import get_file
@@ -41,16 +42,16 @@ for i, sentence in enumerate(sentences):
 
 # build the model: a triple LSTM
 model = Sequential()
-model.add(LSTM(512, input_shape=(maxlen, len(chars)), return_sequences=True))
-model.add(LSTM(512, return_sequences=True))
-model.add(LSTM(512))
+model.add(LSTM(256, input_shape=(maxlen, len(chars)), return_sequences=True))
+model.add(Dropout(0.5))
+model.add(LSTM(256))
+model.add(Dropout(0.5))
 model.add(Dense(len(chars)))
 model.add(Activation('softmax'))
-
-model.load_weights("weights-1.581.hdf5")
+model.load_weights("3x256-LSTM-0.5-dropout/weights-1.202.hdf5")
 model.compile(loss='categorical_crossentropy', optimizer='adam')
 
-filepath = "weights-{loss:.3f}.hdf5"
+filepath = "3x256-LSTM-0.5-dropout/weights-{loss:.3f}.hdf5"
 checkpoint = ModelCheckpoint(filepath, monitor='loss', verbose=1, save_best_only=True, mode='min')
 callbacks_list = [checkpoint]
 
