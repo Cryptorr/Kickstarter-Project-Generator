@@ -11,57 +11,37 @@ import random
 import sys
 import pandas as pd
 
-text = ""
-projects = pd.read_csv('most_backed.csv')
-projects["blurb"] = projects["blurb"].astype(str)
-for blurb in projects["blurb"]:
-    text += blurb
-text = text.lower()
+seqlen = 30
 
-chars = sorted(list(set(text)))
-print('total chars:', len(chars))
+chars = sorted(set("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.,!?-+()'/&\" "))
+chars.append("\n")
 char_indices = dict((c, i) for i, c in enumerate(chars))
 indices_char = dict((i, c) for i, c in enumerate(chars))
 
-maxlen = 40
-step = 3
-sentences = []
-next_chars = []
-for i in range(0, len(text) - maxlen, step):
-    sentences.append(text[i: i + maxlen])
-    next_chars.append(text[i + maxlen])
-
-#one hot encoding
-X = np.zeros((len(sentences), maxlen, len(chars)), dtype=np.bool)
-y = np.zeros((len(sentences), len(chars)), dtype=np.bool)
-for i, sentence in enumerate(sentences):
-    for t, char in enumerate(sentence):
-        X[i, t, char_indices[char]] = 1
-    y[i, char_indices[next_chars[i]]] = 1
-
-
 # build the model: a triple LSTM
 model = Sequential()
-model.add(LSTM(256, input_shape=(maxlen, len(chars)), return_sequences=True))
+model.add(LSTM(128, input_shape=(seqlen, len(chars)), return_sequences=True))
 model.add(Dropout(0.5))
-model.add(LSTM(256))
+model.add(LSTM(128, return_sequences=True))
+model.add(Dropout(0.5))
+model.add(LSTM(128))
 model.add(Dropout(0.5))
 model.add(Dense(len(chars)))
 model.add(Activation('softmax'))
 
-model.load_weights("3x256-LSTM-0.5-dropout/weights-1.202.hdf5")
+model.load_weights("3x128-LSTM-0.5-dropout/weights-1.757.hdf5")
 model.compile(loss='categorical_crossentropy', optimizer='adam')
 #generate output
-start_index = random.randint(0, len(text) - maxlen - 1)
+start_index = 0
 
 generated = ''
-sentence = text[start_index: start_index + maxlen]
+sentence = 'Exploding kittens is a card ga'
 generated += sentence
 print('Seed: "' + sentence + '"')
 sys.stdout.write(generated)
 
-for i in range(200):
-    x = np.zeros((1, maxlen, len(chars)))
+for i in range(150):
+    x = np.zeros((1, seqlen, len(chars)))
     for t, char in enumerate(sentence):
         x[0, t, char_indices[char]] = 1.
 
@@ -79,3 +59,5 @@ for i in range(200):
 
     sys.stdout.write(next_char)
     sys.stdout.flush()
+    if (next_char == "\n"):
+        break
